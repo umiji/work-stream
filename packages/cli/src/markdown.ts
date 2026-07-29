@@ -19,6 +19,6 @@ export function parseCapturedItem(markdown: string): CapturedItem {
   const frontmatter: unknown = parse(frontmatterBlock)
   return CapturedItemSchema.parse({
     ...(frontmatter as Record<string, unknown>),
-    content: body.replace(/\n+$/, ''),
+    content: body.endsWith('\n') ? body.slice(0, -1) : body,
   })
 }

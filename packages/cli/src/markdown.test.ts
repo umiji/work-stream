@@ -31,4 +31,14 @@ describe('serializeCapturedItem / parseCapturedItem', () => {
   it('throws on markdown without a frontmatter block', () => {
     expect(() => parseCapturedItem('本文だけ')).toThrow()
   })
+
+  it('preserves a trailing newline that is part of the content itself', () => {
+    const itemWithTrailingNewline: CapturedItem = {
+      ...item,
+      content: '本文の末尾に改行がある。\n',
+    }
+    const markdown = serializeCapturedItem(itemWithTrailingNewline)
+    const parsed = parseCapturedItem(markdown)
+    expect(parsed).toEqual(itemWithTrailingNewline)
+  })
 })
