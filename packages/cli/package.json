@@ -1,0 +1,19 @@
+{
+  "name": "@work-stream/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@work-stream/contracts": "workspace:*",
+    "commander": "^12.1.0",
+    "ulid": "^2.3.0",
+    "yaml": "^2.6.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.1"
+  }
+}
