@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -70,5 +70,12 @@ describe('ingest', () => {
     if (result.status === 'ingested') {
       expect(result.correlationId).toMatch(/^[0-9A-Z]{26}$/)
     }
+  })
+
+  it('does not stage unrelated dirty files sitting in the knowledge-repo', () => {
+    writeFileSync(join(repo, 'unrelated.txt'), 'in-progress digest work')
+    ingest(baseItem(), repo)
+    const status = git(repo, 'status', '--porcelain', 'unrelated.txt')
+    expect(status.trim()).toBe('?? unrelated.txt')
   })
 })

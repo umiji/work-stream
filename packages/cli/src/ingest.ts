@@ -32,9 +32,12 @@ export function ingest(
 
   mkdirSync(inboxDir, { recursive: true })
   writeFileSync(filePath, serializeCapturedItem(fullItem))
-  createMarker(knowledgeRepoPath, item.sourceId)
+  const markerFilePath = createMarker(knowledgeRepoPath, item.sourceId)
 
-  runGit(knowledgeRepoPath, ['add', '-A'])
+  // Stage only the files this function wrote (captured item + idempotency marker).
+  // `git add -A` would sweep up unrelated uncommitted changes in the knowledge-repo
+  // (e.g. an in-progress digest session) into a commit that only describes this capture.
+  runGit(knowledgeRepoPath, ['add', '--', filePath, markerFilePath])
   runGit(knowledgeRepoPath, [
     'commit',
     '-m',
