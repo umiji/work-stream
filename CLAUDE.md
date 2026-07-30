@@ -4,17 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリの性質
 
-**現時点ではコードが 1 行も無い、設計ドキュメント専用リポジトリ**（追跡ファイルは `README.md` と `docs/` 配下の 2 文書のみ）。
+**設計ドキュメントに加えて、P0-a（capture→digest 最短ループ）の最初の実装スライスが入った pnpm + TypeScript のモノレポ。** `packages/contracts`（`CapturedItem` 等の zod スキーマ）と `packages/cli`（`ws capture` コマンド）が実コードとして存在し、`templates/claude/`（Claude Code 用の `/capture` `/digest` コマンドと digest skill のテンプレート）も含まれる。
 
 そのため:
 
-- **ビルド / テスト / lint コマンドは存在しない。** `package.json`・`tsconfig.json`・CI 設定を探しても無い。「テストを流す」「ビルドを通す」といった依頼を受けたら、まず実装がまだ無いことを伝える
-- 検証手段は文書レビューのみ。変更の妥当性は「2 文書間の整合が取れているか」「前提事実が古くなっていないか」で判断する
-- 最初に実装が入る場合、設計上は TypeScript の CLI（`capture/`・`publish/`）と GitHub Actions workflow がその対象になる（下記「まだ存在しないもの」参照）
+- **`pnpm test`（Vitest）と `pnpm run typecheck`（`tsc -b packages/contracts packages/cli`）は実際に動くコマンド。** 「テストを流す」「型チェックを通す」といった依頼が来たら、まずこれらを実行する
+- `templates/claude/` 配下は**テンプレートであり、`~/.claude/` へはまだデプロイされていない**（実配置は P0-b 以降）。ユーザーの Claude Code 環境の `/capture` `/digest` はこのテンプレートを直接使っているわけではないので、「実装が存在する」と「ユーザー環境で使える」を混同しないこと
+- 検証手段は「テスト/型チェックの green」に加えて文書レビューも引き続き必要。設計側の変更は「複数文書間の整合が取れているか」「前提事実が古くなっていないか」で判断する
+- まだ実装されていない範囲（`knowledge-repo` 側の `inbox/`・`notes/` 構造、GitHub Actions workflow 等）は下記「まだ存在しないもの」を参照
 
 ## このプロジェクトが設計しているもの
 
-個人の学び・気づきをナレッジ基盤に集積し、複数メディア（Zenn / X / dev.to 等）へ自動アウトプットする基盤。**設計そのものが成果物**であり、実装は未着手。
+個人の学び・気づきをナレッジ基盤に集積し、複数メディア（Zenn / X / dev.to 等）へ自動アウトプットする基盤。**設計そのものが成果物**である段階から、P0-a で最初の実装（capture→ingest の最短ループ）に着手した段階に移っている。
 
 ## 2 つの文書の関係（ここを取り違えると議論が噛み合わない）
 
@@ -40,7 +41,7 @@ zero-base design が Proposal と決別した 3 点。ここが以降の全判�
 派生する重要な帰結:
 
 - **ディレクトリ構造がそのままステータス機械**（`inbox/` = captured → `notes/` = processed → `drafts/` + open PR = needs-review → merge = approved → `published/`）。状態遷移が git の移動とマージなので監査ログが自動でつく。ステータスを frontmatter のフィールドとして再発明しないこと
-- **`CapturedItem` の正規化スキーマと冪等キー `sourceId` を先に確定させることが、手戻り回避の本体。** ChatGPT / Claude chat には会話取得の公式 API が無く、エクスポート ZIP の取込（pull 型）が現実解。将来 MCP / API が生えても同じ `CapturedItem` に流すだけにする、というのが設計意図
+- **`CapturedItem` の正規化スキーマと冪等キー `sourceId` を先に確定させることが、手戻り回避の本体。** ChatGPT / Claude chat には会話取得の公式 API が無く、エクスポート ZIP の取込（pull 型）が現実解。将来 MCP / API が生えても同じ `CapturedItem` に流すだけにする、というのが設計意図。（`packages/contracts` の `CapturedItemSchema` が P0-a でこのスキーマの最初の実装）
 - **「定額」の趣旨は LLM のエージェント従量課金の回避**であり、配信 API の微少な従量（X の投稿課金など）は別枠として許容する、と整理されている。この線引きを崩さないこと
 
 ## 前提事実と鮮度（両文書とも 2026-07-10 時点）
@@ -54,9 +55,11 @@ zero-base design が Proposal と決別した 3 点。ここが以降の全判�
 
 ## まだ存在しないもの（実在すると誤認しないこと）
 
-zero-base design の「リポジトリ構成」章にある `inbox/`・`notes/`・`moc/`・`drafts/`・`articles/`・`published/`・`capture/`・`publish/`・`.claude/skills/`・`.github/workflows/` は**すべて設計案であって未作成**。文書は `knowledge-repo/` という名前で書かれているが、実在するのはこの `work-stream` リポジトリだけ。両者が同一リポジトリになるのか分離するのかも未決。
+zero-base design の「リポジトリ構成」章にある `inbox/`・`notes/`・`moc/`・`drafts/`・`articles/`・`published/` を実際に持つ **`knowledge-repo` リポジトリはまだ存在しない**。ローカルにスクラッチとして置かれることはあっても、この `work-stream` リポジトリの git 管理下には無い、別の・未バージョン管理のディレクトリである（両者が同一リポジトリになるのか分離するのかも未決）。
 
-フェーズ計画上、次に来るのは P0（repo 骨格 + `CapturedItem` スキーマ + digest skill を手元で実行）。
+一方、`capture/`・`publish/` に相当するもの（`packages/cli` の `ws capture` コマンド）と、`.claude/skills/`・`.github/workflows/` の一部に相当するもの（`templates/claude/commands/*.md`、`templates/claude/skills/digest/SKILL.md`）は、**この `work-stream` リポジトリの中にはテンプレート／実装として存在する**。ただし後者はあくまでテンプレートであり、`~/.claude/` へ配置されるまでは実際の Claude Code セッションからは呼び出せない。「`work-stream` 内にテンプレートがある」ことと「`knowledge-repo` の `inbox/`・`notes/` 構造が実在する」ことを混同しないこと。
+
+フェーズ計画上、P0-a（repo 骨格 + `CapturedItem` スキーマ + `ws capture` + digest skill テンプレート整備）は本ブランチで実装済み。次に来るのは P0-b（runtime-git ポート・イベントログ・ownership-guard 等、`docs/superpowers/plans/2026-07-28-p0a-capture-digest-loop.md` 参照）。
 
 ## 執筆時の約束事
 
