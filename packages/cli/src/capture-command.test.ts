@@ -27,4 +27,15 @@ describe('buildCapturedItem', () => {
     const b = buildCapturedItem({ kind: 'thought', content: '内容B', cwd: '/repos/my-app', now })
     expect(a.sourceId).not.toBe(b.sourceId)
   })
+
+  it('uses the provided origin when specified', () => {
+    const item = buildCapturedItem({
+      kind: 'reference',
+      content: '内容A',
+      cwd: '/repos/my-app',
+      now,
+      origin: 'external',
+    })
+    expect(item.origin).toBe('external')
+  })
 })

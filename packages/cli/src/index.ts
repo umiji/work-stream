@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs'
 import { Command } from 'commander'
-import { CaptureKindSchema } from '@work-stream/contracts'
+import { CaptureKindSchema, OriginSchema } from '@work-stream/contracts'
 import { buildCapturedItem } from './capture-command.js'
 import { loadConfig } from './config.js'
 import { ingest } from './ingest.js'
@@ -14,11 +14,19 @@ program
   .description('気づき・検討・記録を knowledge-repo の inbox/ へ取り込む')
   .requiredOption('--kind <kind>', 'thought | reference | log')
   .option('--file <path>', '内容をファイルから読む(省略時は標準入力)')
-  .action((opts: { kind: string; file?: string }) => {
+  .option('--origin <origin>', 'self | external (省略時は self)', 'self')
+  .action((opts: { kind: string; file?: string; origin: string }) => {
     try {
       const captureKindResult = CaptureKindSchema.safeParse(opts.kind)
       if (!captureKindResult.success) {
         console.error(`--kind の値が無効です: ${opts.kind} (thought, reference, log のいずれかを指定してください)`)
+        process.exitCode = 1
+        return
+      }
+
+      const originResult = OriginSchema.safeParse(opts.origin)
+      if (!originResult.success) {
+        console.error(`--origin の値が無効です: ${opts.origin} (self, external のいずれかを指定してください)`)
         process.exitCode = 1
         return
       }
@@ -36,6 +44,7 @@ program
         content,
         cwd: process.cwd(),
         now: new Date(),
+        origin: originResult.data,
       })
       const result = ingest(item, config.knowledgeRepo)
       if (result.status === 'duplicate') {
