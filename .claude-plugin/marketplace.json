@@ -1,0 +1,18 @@
+{
+  "name": "work-stream",
+  "description": "work-stream のナレッジ捕捉プラグイン配布元",
+  "owner": {
+    "name": "umiji"
+  },
+  "plugins": [
+    {
+      "name": "work-stream",
+      "description": "気づきを knowledge-repo に取り込む /capture と、inbox を atomic note に育てる /digest",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "umiji"
+      }
+    }
+  ]
+}

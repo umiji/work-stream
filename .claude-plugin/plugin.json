@@ -1,0 +1,11 @@
+{
+  "name": "work-stream",
+  "description": "気づきを knowledge-repo に取り込む /capture と、inbox を atomic note に育てる /digest",
+  "version": "0.1.0",
+  "author": {
+    "name": "umiji"
+  },
+  "homepage": "https://github.com/umiji/work-stream",
+  "repository": "https://github.com/umiji/work-stream",
+  "keywords": ["knowledge-base", "capture", "note-taking"]
+}
