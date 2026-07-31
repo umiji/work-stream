@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 そのため:
 
 - **`pnpm test`（Vitest）と `pnpm run typecheck`（`tsc -b packages/contracts packages/cli`）は実際に動くコマンド。** 「テストを流す」「型チェックを通す」といった依頼が来たら、まずこれらを実行する
-- `commands/`・`skills/` は **Claude Code プラグインとして配布される実体**であり、`/plugin install work-stream@work-stream` を実行済みの環境では実際に `/capture` `/digest` として呼び出せる（2026-07-31 時点）。`packages/cli/src/` を変更した場合は `pnpm run build` で `dist/ws.mjs` を再生成しないと、配布物側に反映されない点に注意する。この再生成漏れは `pnpm test` や `pnpm run typecheck` では検知できず、自動チェックが green のままプラグインだけが古い挙動を配布し続ける
+- `commands/`・`skills/` は **Claude Code プラグインとして配布される実体**であり、`/plugin install work-stream@work-stream` を実行済みの環境で `/capture` `/digest` として呼び出せる想定である（この動作は 2026-07-31 時点で実機検証されていない）。`packages/cli/src/` を変更した場合は `pnpm run build` で `dist/ws.mjs` を再生成しないと、配布物側に反映されない点に注意する。この再生成漏れは `pnpm test` や `pnpm run typecheck` では検知できず、自動チェックが green のままプラグインだけが古い挙動を配布し続ける
 - 検証手段は「テスト/型チェックの green」に加えて文書レビューも引き続き必要。設計側の変更は「複数文書間の整合が取れているか」「前提事実が古くなっていないか」で判断する
 - まだ実装されていない範囲（`knowledge-repo` 側の `inbox/`・`notes/` 構造、GitHub Actions workflow 等）は下記「まだ存在しないもの」を参照
 

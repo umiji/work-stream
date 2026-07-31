@@ -17,7 +17,7 @@ Claude Code に本リポジトリをプラグインとして追加する。
 /plugin install work-stream@work-stream
 ```
 
-インストール後に Claude Code を再起動すると、`/capture` `/digest` コマンドと `ws` コマンドがすべてのプロジェクトで使えるようになる。
+インストール後に Claude Code を再起動すると、`/capture` `/digest` コマンドと `ws` コマンドがすべてのプロジェクトで使えるようになる想定である（この動作は 2026-07-31 時点で実機検証されていない）。
 
 保存先（knowledge-repo）は次の順で解決される。
 
