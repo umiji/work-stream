@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリの性質
 
-**設計ドキュメントに加えて、P0-a（capture→digest 最短ループ）の最初の実装スライスが入った pnpm + TypeScript のモノレポ。** `packages/contracts`（`CapturedItem` 等の zod スキーマ）と `packages/cli`（`ws capture` コマンド）が実コードとして存在し、`templates/claude/`（Claude Code 用の `/capture` `/digest` コマンドと digest skill のテンプレート）も含まれる。
+**設計ドキュメントに加えて、P0-a（capture→digest 最短ループ）の最初の実装スライスが入った pnpm + TypeScript のモノレポ。** `packages/contracts`（`CapturedItem` 等の zod スキーマ）と `packages/cli`（`ws capture` コマンド）が実コードとして存在し、`commands/`・`skills/`（Claude Code プラグインとして配布される `/capture` `/digest` コマンドと digest skill）も含まれる。
 
 そのため:
 
 - **`pnpm test`（Vitest）と `pnpm run typecheck`（`tsc -b packages/contracts packages/cli`）は実際に動くコマンド。** 「テストを流す」「型チェックを通す」といった依頼が来たら、まずこれらを実行する
-- `templates/claude/` 配下は**テンプレートであり、`~/.claude/` へはまだデプロイされていない**（実配置は P0-b 以降）。ユーザーの Claude Code 環境の `/capture` `/digest` はこのテンプレートを直接使っているわけではないので、「実装が存在する」と「ユーザー環境で使える」を混同しないこと
+- `commands/`・`skills/` は **Claude Code プラグインとして配布される実体**であり、`/plugin install work-stream@work-stream` を実行済みの環境では実際に `/capture` `/digest` として呼び出せる（2026-07-31 時点）。`packages/cli/src/` を変更した場合は `pnpm run build` で `dist/ws.mjs` を再生成しないと、配布物側に反映されない点に注意する。この再生成漏れは `pnpm test` や `pnpm run typecheck` では検知できず、自動チェックが green のままプラグインだけが古い挙動を配布し続ける
 - 検証手段は「テスト/型チェックの green」に加えて文書レビューも引き続き必要。設計側の変更は「複数文書間の整合が取れているか」「前提事実が古くなっていないか」で判断する
 - まだ実装されていない範囲（`knowledge-repo` 側の `inbox/`・`notes/` 構造、GitHub Actions workflow 等）は下記「まだ存在しないもの」を参照
 
@@ -59,7 +59,7 @@ zero-base design が Proposal と決別した 3 点。ここが以降の全判�
 
 zero-base design の「リポジトリ構成」章にある `inbox/`・`notes/`・`moc/`・`drafts/`・`articles/`・`published/` を実際に持つ **`knowledge-repo` リポジトリはまだ存在しない**。ローカルにスクラッチとして置かれることはあっても、この `work-stream` リポジトリの git 管理下には無い、別の・未バージョン管理のディレクトリである（両者が同一リポジトリになるのか分離するのかも未決）。
 
-一方、`capture/`・`publish/` に相当するもの（`packages/cli` の `ws capture` コマンド）と、`.claude/skills/`・`.github/workflows/` の一部に相当するもの（`templates/claude/commands/*.md`、`templates/claude/skills/digest/SKILL.md`）は、**この `work-stream` リポジトリの中にはテンプレート／実装として存在する**。ただし後者はあくまでテンプレートであり、`~/.claude/` へ配置されるまでは実際の Claude Code セッションからは呼び出せない。「`work-stream` 内にテンプレートがある」ことと「`knowledge-repo` の `inbox/`・`notes/` 構造が実在する」ことを混同しないこと。
+一方、`capture/`・`publish/` に相当するもの（`packages/cli` の `ws capture` コマンド）と、`.claude/skills/` の一部に相当するもの（`commands/*.md`、`skills/digest/SKILL.md`）は、**この `work-stream` リポジトリの中に実装として存在し、プラグイン経由で実際に呼び出せる**。「`work-stream` 内に実装がある」ことと「`knowledge-repo` の `inbox/`・`notes/` 構造が実在する」ことは依然として別の話なので混同しないこと。
 
 フェーズ計画上、P0-a（repo 骨格 + `CapturedItem` スキーマ + `ws capture` + digest skill テンプレート整備）は本ブランチで実装済み。次に来るのは P0-b（runtime-git ポート・イベントログ・ownership-guard 等、`docs/superpowers/plans/2026-07-28-p0a-capture-digest-loop.md` 参照）。
 

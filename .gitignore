@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# 各パッケージのビルド出力（packages/*/dist/ 等）はすべて除外しつつ、
+# プラグイン配布の実体であるルート直下の dist/ws.mjs だけを例外的に含める。
 !/dist/
 /dist/*
 !/dist/ws.mjs
