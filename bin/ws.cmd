@@ -1,2 +1,2 @@
 @echo off
-echo ws placeholder: PATH resolution works
+node "%~dp0..\dist\ws.mjs" %*

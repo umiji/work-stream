@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-echo "ws placeholder: PATH resolution works"
+exec node "$(dirname -- "$0")/../dist/ws.mjs" "$@"
