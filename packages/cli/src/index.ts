@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { Command } from 'commander'
 import { CaptureKindSchema, OriginSchema } from '@work-stream/contracts'
 import { buildCapturedItem } from './capture-command.js'
-import { loadConfig } from './config.js'
+import { resolveConfig } from './config.js'
 import { ingest } from './ingest.js'
 
 const program = new Command()
@@ -31,7 +31,7 @@ program
         return
       }
 
-      const config = loadConfig()
+      const config = resolveConfig({ cwd: process.cwd(), env: process.env })
       const rawContent = opts.file ? readFileSync(opts.file, 'utf-8') : readFileSync(0, 'utf-8')
       const content = rawContent.trim()
       if (content.length === 0) {
