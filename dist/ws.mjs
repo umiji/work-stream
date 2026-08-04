@@ -14635,6 +14635,82 @@ var ItemCapturedEventSchema = EventEnvelopeSchema.extend({
   type: external_exports.literal("Ingest.ItemCaptured")
 });
 
+// packages/cli/src/archive.ts
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, renameSync } from "node:fs";
+import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+var ARCHIVE_DIRNAME = "archive";
+function toPosix(path) {
+  return path.split("\\").join("/");
+}
+function validateTarget(repoPath, target) {
+  const absolute = isAbsolute(target) ? resolve(target) : resolve(repoPath, target);
+  const relPath = toPosix(relative(resolve(repoPath), absolute));
+  if (relPath.length === 0 || relPath.startsWith("../")) {
+    return { ok: false, reason: "\u4FDD\u7BA1\u5EAB\u306E\u5916\u3092\u6307\u3057\u3066\u3044\u307E\u3059" };
+  }
+  if (relPath === ARCHIVE_DIRNAME || relPath.startsWith(`${ARCHIVE_DIRNAME}/`)) {
+    return { ok: false, reason: "\u65E2\u306B\u9000\u907F\u6E08\u307F\u3067\u3059" };
+  }
+  return { ok: true, relPath };
+}
+function toArchiveRelPath(relPath) {
+  return `${ARCHIVE_DIRNAME}/${relPath}`;
+}
+function resolveCollision(archiveRelPath, isTaken) {
+  if (!isTaken(archiveRelPath)) {
+    return archiveRelPath;
+  }
+  const extension = extname(archiveRelPath);
+  const stem = archiveRelPath.slice(0, archiveRelPath.length - extension.length);
+  for (let suffix = 2; ; suffix += 1) {
+    const candidate = `${stem}-${suffix}${extension}`;
+    if (!isTaken(candidate)) {
+      return candidate;
+    }
+  }
+}
+function runGit(repoPath, args) {
+  execFileSync("git", args, { cwd: repoPath, encoding: "utf-8" });
+}
+function archive(repoPath, targets, options = {}) {
+  const outcomes = [];
+  const movedRelPaths = [];
+  for (const target of targets) {
+    const validation = validateTarget(repoPath, target);
+    if (!validation.ok) {
+      outcomes.push({ status: "skipped", from: target, reason: validation.reason });
+      continue;
+    }
+    const sourceAbsolute = join(repoPath, validation.relPath);
+    if (!existsSync(sourceAbsolute)) {
+      outcomes.push({ status: "skipped", from: validation.relPath, reason: "\u898B\u3064\u304B\u308A\u307E\u305B\u3093" });
+      continue;
+    }
+    const destinationRelPath = resolveCollision(
+      toArchiveRelPath(validation.relPath),
+      (candidate) => existsSync(join(repoPath, candidate))
+    );
+    const destinationAbsolute = join(repoPath, destinationRelPath);
+    if (options.dryRun !== true) {
+      mkdirSync(dirname(destinationAbsolute), { recursive: true });
+      renameSync(sourceAbsolute, destinationAbsolute);
+      movedRelPaths.push(validation.relPath, destinationRelPath);
+    }
+    outcomes.push({ status: "archived", from: validation.relPath, to: destinationRelPath });
+  }
+  if (options.commit === true && movedRelPaths.length > 0) {
+    const archivedCount = outcomes.filter((outcome) => outcome.status === "archived").length;
+    runGit(repoPath, ["add", "--", ...movedRelPaths]);
+    runGit(repoPath, [
+      "commit",
+      "-m",
+      options.message ?? `chore(archive): \u51E6\u7406\u6E08\u307F\u306E ${archivedCount} \u4EF6\u3092 archive/ \u3078\u79FB\u52D5`
+    ]);
+  }
+  return outcomes;
+}
+
 // packages/cli/src/capture-command.ts
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
@@ -14653,9 +14729,9 @@ function buildCapturedItem(input) {
 }
 
 // packages/cli/src/config.ts
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync as existsSync2, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname as dirname2, join as join2 } from "node:path";
 var MARKER_FILENAME = ".work-stream.json";
 var WorkStreamConfigSchema = external_exports.object({
   knowledgeRepo: external_exports.string().min(1),
@@ -14665,7 +14741,7 @@ var RepoMarkerSchema = external_exports.object({
   defaultDomain: external_exports.string().min(1).optional()
 });
 function defaultConfigPath() {
-  return join(homedir(), ".config", "work-stream", "config.json");
+  return join2(homedir(), ".config", "work-stream", "config.json");
 }
 function loadConfig(configPath = defaultConfigPath()) {
   const raw = readFileSync(configPath, "utf-8");
@@ -14675,10 +14751,10 @@ function loadConfig(configPath = defaultConfigPath()) {
 function findRepoMarker(startDir) {
   let current = startDir;
   for (; ; ) {
-    if (existsSync(join(current, MARKER_FILENAME))) {
+    if (existsSync2(join2(current, MARKER_FILENAME))) {
       return current;
     }
-    const parent = dirname(current);
+    const parent = dirname2(current);
     if (parent === current) {
       return null;
     }
@@ -14692,12 +14768,12 @@ function resolveConfig(options) {
   }
   const markerDir = findRepoMarker(options.cwd);
   if (markerDir !== null) {
-    const raw = readFileSync(join(markerDir, MARKER_FILENAME), "utf-8");
+    const raw = readFileSync(join2(markerDir, MARKER_FILENAME), "utf-8");
     const marker = RepoMarkerSchema.parse(JSON.parse(raw));
     return { knowledgeRepo: markerDir, defaultDomain: marker.defaultDomain };
   }
   const configPath = options.configPath ?? defaultConfigPath();
-  if (existsSync(configPath)) {
+  if (existsSync2(configPath)) {
     return loadConfig(configPath);
   }
   throw new Error(
@@ -14710,26 +14786,26 @@ function resolveConfig(options) {
 
 // packages/cli/src/ingest.ts
 var import_ulid = __toESM(require_index_umd(), 1);
-import { execFileSync } from "node:child_process";
-import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "node:fs";
-import { join as join3 } from "node:path";
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { mkdirSync as mkdirSync3, writeFileSync as writeFileSync2 } from "node:fs";
+import { join as join4 } from "node:path";
 
 // packages/cli/src/idempotency.ts
 import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync2, mkdirSync, writeFileSync } from "node:fs";
-import { dirname as dirname2, join as join2 } from "node:path";
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, writeFileSync } from "node:fs";
+import { dirname as dirname3, join as join3 } from "node:path";
 function hashSourceId(sourceId) {
   return createHash2("sha256").update(sourceId, "utf-8").digest("hex");
 }
 function markerPath(knowledgeRepoPath, sourceId) {
-  return join2(knowledgeRepoPath, ".system", "state", "ingest", "seen", hashSourceId(sourceId));
+  return join3(knowledgeRepoPath, ".system", "state", "ingest", "seen", hashSourceId(sourceId));
 }
 function hasBeenIngested(knowledgeRepoPath, sourceId) {
-  return existsSync2(markerPath(knowledgeRepoPath, sourceId));
+  return existsSync3(markerPath(knowledgeRepoPath, sourceId));
 }
 function createMarker(knowledgeRepoPath, sourceId) {
   const target = markerPath(knowledgeRepoPath, sourceId);
-  mkdirSync(dirname2(target), { recursive: true });
+  mkdirSync2(dirname3(target), { recursive: true });
   writeFileSync(target, "");
   return target;
 }
@@ -14749,22 +14825,22 @@ ${content}
 
 // packages/cli/src/ingest.ts
 var ulid = (0, import_ulid.monotonicFactory)();
-function runGit(repo, args) {
-  execFileSync("git", args, { cwd: repo, encoding: "utf-8" });
+function runGit2(repo, args) {
+  execFileSync2("git", args, { cwd: repo, encoding: "utf-8" });
 }
 function ingest(item, knowledgeRepoPath) {
-  const inboxDir = join3(knowledgeRepoPath, "inbox");
+  const inboxDir = join4(knowledgeRepoPath, "inbox");
   if (hasBeenIngested(knowledgeRepoPath, item.sourceId)) {
     return { status: "duplicate", path: inboxDir };
   }
   const correlationId = item.correlationId ?? ulid();
   const fullItem = { ...item, correlationId };
-  const filePath = join3(inboxDir, `${correlationId}.md`);
-  mkdirSync2(inboxDir, { recursive: true });
+  const filePath = join4(inboxDir, `${correlationId}.md`);
+  mkdirSync3(inboxDir, { recursive: true });
   writeFileSync2(filePath, serializeCapturedItem(fullItem));
   const markerFilePath = createMarker(knowledgeRepoPath, item.sourceId);
-  runGit(knowledgeRepoPath, ["add", "--", filePath, markerFilePath]);
-  runGit(knowledgeRepoPath, [
+  runGit2(knowledgeRepoPath, ["add", "--", filePath, markerFilePath]);
+  runGit2(knowledgeRepoPath, [
     "commit",
     "-m",
     `feat(ingest): capture ${item.captureKind} ${correlationId}`
@@ -14809,6 +14885,30 @@ program2.command("capture").description("\u6C17\u3065\u304D\u30FB\u691C\u8A0E\u3
       console.log(`\u65E2\u306B\u53D6\u308A\u8FBC\u307F\u6E08\u307F\u3067\u3059(\u91CD\u8907\u306F\u30B9\u30AD\u30C3\u30D7): ${result.path}`);
     } else {
       console.log(`\u53D6\u308A\u8FBC\u307F\u307E\u3057\u305F: ${result.path}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ${message}`);
+    process.exitCode = 1;
+  }
+});
+program2.command("archive").description("\u51E6\u7406\u6E08\u307F\u306E\u30D5\u30A1\u30A4\u30EB\u3092 knowledge-repo \u306E archive/ \u3078\u5143\u306E\u968E\u5C64\u3054\u3068\u79FB\u52D5\u3059\u308B").argument("<paths...>", "knowledge-repo \u304B\u3089\u306E\u76F8\u5BFE\u30D1\u30B9(inbox/ notes/ knowledge/ \u3044\u305A\u308C\u3082\u53EF)").option("--message <message>", "\u30B3\u30DF\u30C3\u30C8\u30E1\u30C3\u30BB\u30FC\u30B8").option("--dry-run", "\u79FB\u52D5\u305B\u305A\u3001\u4F55\u304C\u3069\u3053\u3078\u52D5\u304F\u304B\u3060\u3051\u8868\u793A\u3059\u308B", false).action((paths, opts) => {
+  try {
+    const config = resolveConfig({ cwd: process.cwd(), env: process.env });
+    const outcomes = archive(config.knowledgeRepo, paths, {
+      commit: !opts.dryRun,
+      message: opts.message,
+      dryRun: opts.dryRun
+    });
+    for (const outcome of outcomes) {
+      if (outcome.status === "archived") {
+        console.log(`${opts.dryRun ? "[\u4E0B\u898B] " : ""}\u9000\u907F\u3057\u307E\u3057\u305F: ${outcome.from} -> ${outcome.to}`);
+      } else {
+        console.log(`\u98DB\u3070\u3057\u307E\u3057\u305F(${outcome.reason}): ${outcome.from}`);
+      }
+    }
+    if (outcomes.every((outcome) => outcome.status === "skipped")) {
+      process.exitCode = 1;
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

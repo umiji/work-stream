@@ -34,8 +34,12 @@ description: knowledge-repo の inbox/ にある CapturedItem を atomic note(no
    ```
 5. **本文は 1 ノート 1 アイデア(atomic note)に整形する。** 会話的な言い回しは削り、後から読んでも文脈が完結するように書く(IMPL-L2-05: 「この PR で議論」のような git 履歴依存の記述はしない)
 6. **リンクと MOC を更新する(IMPL-L2-03・L2-04)**: 関連する既存ノートへ標準 Markdown 相対リンク `[title](../domain/slug.md)` を張る。該当するテーマの `moc/<theme>.md` が無ければ作成し、あれば見出しの下に今回のノートへのリンクを追加する
-7. **処理し終えた `inbox/*.md` を削除する**(処理済みの内容は `notes/` / `log/` に転記済みであり、`inbox/` は未処理キューであるため残さない)
-8. 変更したファイルをまとめて 1 コミットにする: `git add -A && git commit -m "feat(digest): <処理した話題の要約>"`
+7. **処理し終えた `inbox/*.md` を `archive/` へ退避する**(`inbox/` は未処理キューであるため残さない。ただし削除はせず、元の内容を後から辿れるようにする)
+   ```bash
+   ws archive inbox/<correlationId>.md
+   ```
+   複数まとめて渡してよい。退避先は `archive/inbox/<元のファイル名>` となり、元の階層がそのまま保たれる。このコマンドは退避と git コミットまで行う
+8. 残りの変更(作成・更新したノート、MOC)をまとめて 1 コミットにする: `git add -A && git commit -m "feat(digest): <処理した話題の要約>"`
 
 ## 検証(このスキルを実行した後に確認すること)
 
