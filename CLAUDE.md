@@ -57,7 +57,7 @@ zero-base design が Proposal と決別した 3 点。ここが以降の全判�
 
 ## まだ存在しないもの（実在すると誤認しないこと）
 
-zero-base design の「リポジトリ構成」章にある `inbox/`・`notes/`・`moc/`・`drafts/`・`articles/`・`published/` を実際に持つ **`knowledge-repo` リポジトリはまだ存在しない**。ローカルにスクラッチとして置かれることはあっても、この `work-stream` リポジトリの git 管理下には無い、別の・未バージョン管理のディレクトリである（両者が同一リポジトリになるのか分離するのかも未決）。
+**（2026-09-07 更新）`knowledge-repo` は既に実在する。** ローカルの `c:/Users/kaiki/Workspace/03_Dev/knowledge-repo` に git 管理下で置かれ、GitHub の private リポジトリ `umiji/knowledge-repo` を remote に持つ。`inbox/`・`notes/`・`moc/`・`log/`・`profile/`・`articles/`・`knowledge/`・`.system/` が作られている（ノートは 2026-09-07 時点で 10 件未満）。ただし **`work-stream` の git 管理下には無い別リポジトリ**である点は変わらず、両者を同一リポジトリにするかは依然として未決。
 
 一方、`capture/`・`publish/` に相当するもの（`packages/cli` の `ws capture` コマンド）と、`.claude/skills/` の一部に相当するもの（`commands/*.md`、`skills/digest/SKILL.md`）は、**この `work-stream` リポジトリの中に実装として存在し、プラグイン経由で実際に呼び出せる**。「`work-stream` 内に実装がある」ことと「`knowledge-repo` の `inbox/`・`notes/` 構造が実在する」ことは依然として別の話なので混同しないこと。
 
